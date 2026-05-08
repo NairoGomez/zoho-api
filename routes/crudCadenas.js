@@ -18,30 +18,13 @@ const DEFAULT_FIELDS = [
   "Modified_Time"
 ];
 
-// Obtiene los campos del módulo dinámicamente
-async function getModuleFields(token) {
-  try {
-    const response = await axios.get(`${BASE_URL}/settings/fields`, {
-      headers: { Authorization: `Zoho-oauthtoken ${token}` },
-      params: { module: MODULE() },
-    });
-    return response.data.fields.map((f) => f.api_name).join(",");
-  } catch (error) {
-    // Si falla, retorna los campos base para no bloquear la consulta
-    console.warn("No se pudieron obtener los campos, usando campos base.");
-    return DEFAULT_FIELDS.join(",");
-  }
-}
-
-// GET /api/query
-// Trae todos los registros con paginación
-// Query params: ?page=1&per_page=20
 router.get("/", async (req, res) => {
   try {
     const token = await getAccessToken();
-    const { page = 1, per_page = 20 } = req.query;
+    const { page = 1, per_page = 100 } = req.query;
 
-    const fields = await getModuleFields(token);
+    // Usa directamente DEFAULT_FIELDS, sin llamar a Zoho por metadatos
+    const fields = DEFAULT_FIELDS.join(",");
 
     const response = await axios.get(`${BASE_URL}/${MODULE()}`, {
       headers: { Authorization: `Zoho-oauthtoken ${token}` },

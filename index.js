@@ -11,7 +11,7 @@ app.use(express.json());
 
 app.use("/api/records", recordsRouter);
 app.use("/api/scores",  scoresRouter);
-app.use("/api/query",   queryRouter);
+app.use("/api/visitas",   queryRouter);
 app.use("/api/branch",   branchRouter);
 app.use("/api/cadenas",   cadenasRouter);
 

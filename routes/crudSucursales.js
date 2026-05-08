@@ -10,44 +10,24 @@ const BASE_URL = "https://www.zohoapis.com/crm/v3";
 const DEFAULT_FIELDS = [
   "id",
   "SUCURSAL",
-  "ESTADO",
+  "ESTATUS",
+  "Identificador_Interno_Sucursal",
   "DEPARTAMENTO",
   "Latitud",
   "Longitud",
-  "Direcci_n",
-  "Identificaci_n_del_supervisor",
-  "NOMBRE_COMPLETO_DEL_GESTOR",
-  "HORARIO_DE_APERTURA",
-  "PACIENTES_EN_ESPERA",
-  "PERSONAL_QUE_ESTA_TOMANDO_MUESTRA",
+  "DIRECCI_N_SUCURSAL",
   "Created_Time",
-  "Modified_Time"
+  "Modified_Time",
+  "MUNICIPIO"
 ];
 
-// Obtiene los campos del módulo dinámicamente
-async function getModuleFields(token) {
-  try {
-    const response = await axios.get(`${BASE_URL}/settings/fields`, {
-      headers: { Authorization: `Zoho-oauthtoken ${token}` },
-      params: { module: MODULE() },
-    });
-    return response.data.fields.map((f) => f.api_name).join(",");
-  } catch (error) {
-    // Si falla, retorna los campos base para no bloquear la consulta
-    console.warn("No se pudieron obtener los campos, usando campos base.");
-    return DEFAULT_FIELDS.join(",");
-  }
-}
-
-// GET /api/query
-// Trae todos los registros con paginación
-// Query params: ?page=1&per_page=20
 router.get("/", async (req, res) => {
   try {
     const token = await getAccessToken();
-    const { page = 1, per_page = 20 } = req.query;
+    const { page = 1, per_page = 100 } = req.query;
 
-    const fields = await getModuleFields(token);
+    // Usa directamente DEFAULT_FIELDS, sin llamar a Zoho por metadatos
+    const fields = DEFAULT_FIELDS.join(",");
 
     const response = await axios.get(`${BASE_URL}/${MODULE()}`, {
       headers: { Authorization: `Zoho-oauthtoken ${token}` },
@@ -56,6 +36,48 @@ router.get("/", async (req, res) => {
 
     const records = response.data.data || [];
     const info = response.data.info || {};
+
+    return res.status(200).json({
+      total: info.count ?? records.length,
+      page: info.page ?? parseInt(page),
+      per_page: info.per_page ?? parseInt(per_page),
+      more_records: info.more_records ?? false,
+      records,
+    });
+  } catch (error) {
+    if (error.response?.status === 204) {
+      return res.status(200).json({ total: 0, records: [] });
+    }
+    console.error("Error:", error.response?.data || error.message);
+    return res.status(500).json({
+      message: "Error al obtener registros",
+      error: error.response?.data || error.message,
+    });
+  }
+});
+
+// GET /api/query
+// Trae todos los registros con paginación
+// Query params: ?page=1&per_page=20
+router.get("/", async (req, res) => {
+  try {
+    const token = await getAccessToken();
+    const { page = 1, per_page = 100 } = req.query;
+
+    // Probando con campos básicos seguros primero
+    const fields = "id,SUCURSAL,ESTADO,DEPARTAMENTO,Created_Time,Modified_Time";
+
+    const response = await axios.get(`${BASE_URL}/${MODULE()}`, {
+      headers: { Authorization: `Zoho-oauthtoken ${token}` },
+      params: { fields, page, per_page },
+    });
+
+    const records = response.data.data || [];
+    const info = response.data.info || {};
+
+    if (records.length > 0) {
+      console.log("🔑 Campos recibidos:", Object.keys(records[0]));
+    }
 
     return res.status(200).json({
       total: info.count ?? records.length,

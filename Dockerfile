@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 3000
 
 # Comando de inicio
-CMD ["npm", "start"]
+CMD ["node", "index.js"]
